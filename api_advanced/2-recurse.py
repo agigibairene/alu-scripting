@@ -7,30 +7,27 @@ all hot articles for a given subreddit."""
 import requests
 
 
-def recurse(subreddit, hot_list=[], after=None):
-    """List with titles of all hot Articles """
-    url = 'https://www.reddit.com/r/{}/hot.json'.format(subreddit)
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    params = {'after': after}
-    response = requests.get(
-                                url,
-                                headers=headers,
-                                params=params,
-                                allow_redirects=False
-                            )
-    if response.status_code == 200:
-        data = response.json().get('data')
-        if data is not None:
-            children = data.get('children')
-            if children is not None:
-                for child in children:
-                    hot_list.append(child.get('data').get('title'))
-                after = data.get('after')
-                if after is not None:
-                    return recurse(subreddit, hot_list, after)
-                else:
-                    return hot_list
-        else:
-            return hot_list
-    else:
-        return None
+def recurse(subreddit, hot_list=[], after="tmp"):
+    """
+        return all hot articles for a given subreddit
+        return None if invalid subreddit given
+    """
+
+    headers = requests.utils.default_headers()
+    headers.update({'User-Agent': 'My User Agent 1.0'})
+
+    url = "https://www.reddit.com/r/{}/hot.json".format(subreddit)
+    if after != "tmp":
+        url = url + "?after={}".format(after)
+    r = requests.get(url, headers=headers, allow_redirects=False)
+
+    results = r.json().get('data', {}).get('children', [])
+    if not results:
+        return hot_list
+    for e in results:
+        hot_list.append(e.get('data').get('title'))
+
+    after = r.json().get('data').get('after')
+    if not after:
+        return hot_list
+    return (recurse(subreddit, hot_list, after))

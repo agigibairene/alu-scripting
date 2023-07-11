@@ -3,21 +3,19 @@
  returns the number of subscribers (all subscribers)"""
 
 
-import requests
-
-
 def number_of_subscribers(subreddit):
     """
-        return number of subscribers for a given subreddit
-        return 0 if invalid subreddit given
+    queries the Reddit API
+    returns the number of subscribers for a given reddit
     """
-    url = "https://www.reddit.com/r/{}/about.json".format(subreddit)
-
-    headers = requests.utils.default_headers()
-    headers.update({'User-Agent': 'My User Agent 1.0'})
-
-    r = requests.get(url, headers=headers).json()
-    subscribers = r.get('data', {}).get('subscribers')
-    if not subscribers:
+    import json
+    import requests
+    subreddit_URL = 'https://www.reddit.com/r/{}/about/.json'.format(
+        subreddit)
+    subreddit_info = requests.get(subreddit_URL,
+                                  headers={"user-agent": "user"},
+                                  allow_redirects=False).json()
+    if "data" not in subreddit_info:
         return 0
+    subscribers = subreddit_info.get("data").get("subscribers")
     return subscribers
