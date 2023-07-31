@@ -1,50 +1,70 @@
 #!/usr/bin/python3
-"""recursive function"""
+"""A recursive function that queries the Reddit
+API and parses the title of all hot articles"""
 
 
-import requests
-
-
-def count_words(subreddit, word_list, after='', word_dict={}):
-    """ A function that queries the Reddit API parses the title of
-    all hot articles, and prints a sorted count of given keywords
-    (case-insensitive, delimited by spaces.
-    Javascript should count as javascript, but java should not).
-    If no posts match or the subreddit is invalid, it prints nothing.
+def count_words(subreddit, word_list, after=None, count={}):
     """
-
-    if not word_dict:
-        for word in word_list:
-            if word.lower() not in word_dict:
-                word_dict[word.lower()] = 0
-
+    queries the Reddit API
+    parses title of all hot articles
+    prints sorted count of given keywords
+    """
+    import json
+    import requests
     if after is None:
-        wordict = sorted(word_dict.items(), key=lambda x: (-x[1], x[0]))
-        for word in wordict:
-            if word[1]:
-                print('{}: {}'.format(word[0], word[1]))
-        return None
-
-    url = 'https://www.reddit.com/r/{}/hot/.json'.format(subreddit)
-    header = {'user-agent': 'redquery'}
-    parameters = {'limit': 100, 'after': after}
-    response = requests.get(url, headers=header, params=parameters,
-                            allow_redirects=False)
-
-    if response.status_code != 200:
-        return None
-
+        sub_URL = 'https://www.reddit.com/r/{}/hot.json'.format(subreddit)
+    else:
+        sub_URL = 'https://www.reddit.com/r/{}/hot.json?after={}'.format(
+            subreddit, after)
+    subreddit_info = requests.get(sub_URL,
+                                  headers={"user-agent": "user"},
+                                  allow_redirects=False)
+    for word in word_list:
+        word = word.lower()
+        if word not in count.keys():
+            count[word] = 0
     try:
-        hot = response.json()['data']['children']
-        aft = response.json()['data']['after']
-        for post in hot:
-            title = post['data']['title']
-            lower = [word.lower() for word in title.split(' ')]
-
-            for word in word_dict.keys():
-                word_dict[word] += lower.count(word)
-
-    except Exception:
-        return None
-
-    count_words(subreddit, word_list, aft, word_dict)
+        data = subreddit_info.json().get("data")
+    except:
+        return
+    children = data.get("children")
+    for child in children:
+        title = (child.get("data").get("title").lower())
+        title = title.split(' ')
+        for word in word_list:
+            word = word.lower()
+            count[word] += title.count(word)
+    after = data.get("after")
+    if after is None:
+        result = []
+        for k in count.keys():
+            if count[k] != 0:
+                if result == []:
+                    result.append("{}: {}".format(k, count[k]))
+                else:
+                    for i in range(len(result)):
+                        if count[k] > int(result[i].split(' ')[1]):
+                            result = result[:i] + \
+                                     ["{}: {}".format(k, count[k])] + \
+                                     result[i:]
+                            break
+                        elif count[k] == int(result[i].split(' ')[1]):
+                            alpha_list = [k, result[i].split(' ')[0]]
+                            j = 1
+                            while count[k] == int(result[i + j].split(' ')[1]):
+                                alpha_list.append(result[i + j].split(' ')[0])
+                            alpha_list = alpha_list.sort
+                            for j in range(len(alpha_list)):
+                                if k == alpha_list[j]:
+                                    result = result[:i + j] + \
+                                             ["{}: {}".format(k, count[k])] + \
+                                             result[i + j:]
+                        else:
+                            continue
+                    else:
+                        result.append("{}: {}".format(k, count[k]))
+        if result != []:
+            for printing in result:
+                print(printing)
+        return
+    return (count_words(subreddit, word_list, after, count))
