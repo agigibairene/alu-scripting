@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Module for count_words function"""
+"""recursive function that queries the Reddit API"""
 
 import json
 import requests
